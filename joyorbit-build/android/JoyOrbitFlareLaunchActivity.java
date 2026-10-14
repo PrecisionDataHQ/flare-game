@@ -27,6 +27,23 @@ public final class JoyOrbitFlareLaunchActivity extends Activity {
                 new File(root, "userdata/saves").mkdirs();
                 new File(root, "userdata/mods").mkdirs();
                 new File(root, "config").mkdirs();
+                File settings = new File(root, "config/settings.txt");
+                if (!settings.isFile()) {
+                    File defaults = new File(data, "mods/default/engine/default_settings.txt");
+                    try (FileOutputStream output = new FileOutputStream(settings)) {
+                        if (defaults.isFile()) {
+                            try (InputStream input = new FileInputStream(defaults)) {
+                                byte[] buffer = new byte[8192]; int count;
+                                while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+                            }
+                        }
+                        boolean tv = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_TYPE_MASK)
+                            == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION;
+                        String firstRun = "\nlanguage=en\nsetup_language=1\nsetup_mousemove=1\nresolution_w=1280\nresolution_h=720\nenable_joystick=1\ndpi_scaling=" + (tv ? "0" : "1") + "\ntouch_controls=" + (tv ? "0" : "1") + "\nno_mouse=" + (tv ? "1" : "0") + "\n";
+                        output.write(firstRun.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    }
+                }
+
                 runOnUiThread(() -> {
                     if (cancelled) return;
                     startActivity(new android.content.Intent(this, JoyOrbitFlareActivity.class));
