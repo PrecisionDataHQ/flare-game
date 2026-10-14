@@ -42,6 +42,15 @@ s=s[:a]+'''void Platform::setPaths() {
     Filesystem::createDir(settings->path_user + "saves");
 }
 '''+s[b:];p.write_text(s)
+# The fixed-step loop can run several logic ticks before one render. Retain
+# cutscene transitions until render consumes them, rather than losing B/next.
+p=work/'src/GameStateCutscene.cpp';s=p.read_text()
+s=s.replace('void GameStateCutscene::logic() {', 'void GameStateCutscene::logic() {\n\tif (status != Scene::NO_CHANGE) return;', 1)
+s=s.replace('\t\t// process logic() status', '\t\t// process logic() status', 1)
+needle='\t\t\tscenes[scene_index]->reset();\n\t\t}\n\t}\n}\n\nbool GameStateCutscene::load'
+replacement='\t\t\tscenes[scene_index]->reset();\n\t\t}\n\t\tstatus = Scene::NO_CHANGE;\n\t}\n}\n\nbool GameStateCutscene::load'
+if needle not in s:raise SystemExit('Pinned Flare cutscene transition context changed')
+s=s.replace(needle,replacement,1);p.write_text(s)
 ndk=Path(os.environ.get('JOYORBIT_NATIVE_NDK',str(Path(os.environ['ANDROID_SDK_ROOT'])/'ndk/29.0.14206865')))
 project=work/'flare-android-project/app/src/main'
 subprocess.run([str(ndk/'ndk-build'),'NDK_PROJECT_PATH='+str(project),'APP_BUILD_SCRIPT='+str(jni/'Android.mk'),'APP_ABI=arm64-v8a','APP_PLATFORM=android-23','APP_MODULES=joyorbit_flare_main','-j6'],check=True)
